@@ -1,4 +1,4 @@
-import { type ReactNode, createContext, useContext } from "react";
+import { type ReactNode, createContext, useContext, useReducer } from "react";
 
 type Timer = {
     name: string;
@@ -16,6 +16,11 @@ type TimersContextValue = TimersState & {
     stopTimers: () => void;
 };
 
+const initialState: TimersState = {
+    isRunning: true,
+    timers: [],
+};
+
 const TimersContext = createContext<TimersContextValue | null>(null);
 
 export const useTimersContext = () => {
@@ -30,18 +35,62 @@ type TimersContextProviderProps = {
     children: ReactNode;
 };
 
+type StartTimersAction = {
+    type: "START_TIMERS";
+};
+
+type StopTimersAction = {
+    type: "STOP_TIMERS";
+};
+
+type AddTimerAction = {
+    type: "ADD_TIMER";
+    payload: Timer;
+};
+
+type Action = AddTimerAction | StartTimersAction | StopTimersAction;
+const timersReducer = (state: TimersState, action: Action): TimersState => {
+    if (action.type === "START_TIMERS") {
+        return {
+            ...state,
+            isRunning: true,
+        };
+    }
+    if (action.type === "STOP_TIMERS") {
+        return {
+            ...state,
+            isRunning: false,
+        };
+    }
+    if (action.type === "ADD_TIMER") {
+        return {
+            ...state,
+            timers: [
+                ...state.timers,
+                {
+                    name: action.payload.name,
+                    duration: action.payload.duration,
+                },
+            ],
+        };
+    }
+    return state;
+};
+
 const TimersContextProvider = ({ children }: TimersContextProviderProps) => {
+    const [timersState, dispatch] = useReducer(timersReducer, initialState);
+
     const ctx: TimersContextValue = {
-        timers: [],
-        isRunning: false,
+        timers: timersState.timers,
+        isRunning: timersState.isRunning,
         addTimer(timerData) {
-            // ...
+            dispatch({ type: "ADD_TIMER", payload: timerData });
         },
         startTimers() {
-            // ...
+            dispatch({ type: "START_TIMERS" });
         },
         stopTimers() {
-            // ...
+            dispatch({ type: "STOP_TIMERS" });
         },
     };
     return (
